@@ -71,8 +71,8 @@ CREATE TABLE gate_logs (
 -- INSERT SAMPLE STAFF DATA
 -- ==========================================================
 INSERT INTO staff_details (name, role, phone_number, email) VALUES
-('Ravi Shastry', 'admin', '9876500000', 'ravi.admin@gate.com'),
-('Aishwarya Nandeshwar', 'security', '9876511111', 'aishwarya.sec@gate.com');
+('Aishwarya Nandeshwar', 'admin', '9876500000', 'aishwarya.admin@gate.com'),
+('xyz', 'security', '9876511111', 'xyz.sec@gate.com');
 
 -- ==========================================================
 -- ADD ONE PRE-APPROVED VEHICLE
