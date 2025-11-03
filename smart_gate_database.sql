@@ -78,7 +78,7 @@ INSERT INTO staff_details (name, role, phone_number, email) VALUES
 -- ADD ONE PRE-APPROVED VEHICLE
 -- ==========================================================
 INSERT INTO allowed_vehicles (vehicle_number, owner_name, approved_by)
-VALUES ('KA01AB1234', 'Aishwarya Nandeshwar', 2);
+VALUES ('KA01AB1234', 'Aishwarya Nandeshwar', 1);
 
 -- ==========================================================
 -- SIMULATION: NEW VEHICLE ARRIVES (KA09XY5678)
