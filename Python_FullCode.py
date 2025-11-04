@@ -5,87 +5,115 @@ import time
 import mysql.connector
 import re
 
-# --- Arduino Serial Connection ---
-arduino = serial.Serial('COM3', 115200)   # 🔹 Change 'COM3' if needed
-time.sleep(2)
-
-# --- MySQL Database Connection ---
+# ----------------------------------------------
+# 1️⃣ CONNECT TO MYSQL DATABASE
+# ----------------------------------------------
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="yourpassword",   # 🔹 Change this
+    password="yourpassword",  # Change to your MySQL password
     database="smart_gate_project"
 )
 cursor = db.cursor()
 
+# ----------------------------------------------
+# 2️⃣ CONNECT TO ARDUINO
+# ----------------------------------------------
+arduino = serial.Serial('COM3', 115200)  # Update COM port if needed
+time.sleep(2)
+
 image_data = b""
 capturing = False
 
-print("🚦 Smart Gate System Ready")
-print("Waiting for vehicle detection...\n")
+print("\n🚪 Smart Gate System Ready. Waiting for vehicle...\n")
 
-# --- Optional: Set Tesseract path if needed (Windows example) ---
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
+# ----------------------------------------------
+# 3️⃣ MAIN LOOP
+# ----------------------------------------------
 while True:
     line = arduino.readline()
 
-    # --- Start receiving image from Arduino ---
     if b'STARTIMG' in line:
         print("📸 Receiving image from Arduino...")
         capturing = True
         image_data = b""
 
-    # --- End of image ---
     elif b'ENDIMG' in line:
-        print("✅ Image received. Saving file...")
+        print("✅ Image received. Saving image...")
         with open("vehicle.jpg", "wb") as f:
             f.write(image_data)
         capturing = False
 
-        # --- Process captured image ---
+        # --- Process Captured Image ---
         img = cv2.imread("vehicle.jpg")
         if img is None:
-            print("⚠ No image captured correctly.")
+            print("⚠ No image captured properly. Skipping.")
             continue
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray = cv2.bilateralFilter(gray, 11, 17, 17)
-
-        # --- Extract text from number plate ---
         text = pytesseract.image_to_string(gray)
-        print("🔍 OCR Result:", text.strip())
+        print("🧾 Extracted Text:", text.strip())
 
-        # --- Match vehicle number (e.g., KA01AB1234) ---
         match = re.search(r'[A-Z]{2}\d{2}[A-Z]{1,2}\d{3,4}', text)
         vehicle_number = match.group() if match else None
 
-        if vehicle_number:
-            print("🚗 Detected Vehicle Number:", vehicle_number)
+        if not vehicle_number:
+            print("❌ Vehicle number not detected properly.")
+            arduino.write(b'CLOSE_GATE\n')
+            continue
 
-            # --- Check in database ---
-            query = "SELECT * FROM allowed_vehicles WHERE vehicle_number = %s"
-            cursor.execute(query, (vehicle_number,))
-            result = cursor.fetchone()
+        print(f"🔍 Detected Vehicle Number: {vehicle_number}")
 
-            if result:
-                print("✅ Authorized Vehicle")
-                arduino.write(b'AUTHORIZED\n')
-                cursor.execute("""
-                    INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
-                    VALUES (%s, 'entry', 'granted', 'opened', 'Authorized vehicle entry granted')
-                """, (vehicle_number,))
+        # --- Database Check ---
+        cursor.execute("SELECT * FROM allowed_vehicles WHERE vehicle_number = %s", (vehicle_number,))
+        authorized = cursor.fetchone()
+
+        cursor.execute("SELECT * FROM blocked_vehicles WHERE vehicle_number = %s", (vehicle_number,))
+        blocked = cursor.fetchone()
+
+        # --- Handle Cases ---
+        if authorized:
+            print(f"✅ {vehicle_number} is authorized. Opening gate...")
+            arduino.write(b'OPEN_GATE\n')
+            cursor.execute("""
+                INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
+                VALUES (%s, 'entry', 'granted', 'opened', 'Authorized vehicle entry granted')
+            """, (vehicle_number,))
+            db.commit()
+
+        elif blocked:
+            print(f"🚫 {vehicle_number} is blocked. Gate remains closed.")
+            arduino.write(b'CLOSE_GATE\n')
+            cursor.execute("""
+                INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
+                VALUES (%s, 'entry', 'denied', 'closed', 'Blocked vehicle detected')
+            """, (vehicle_number,))
+            db.commit()
+
+        else:
+            print(f"⚠ {vehicle_number} not found. Adding to waiting list...")
+            arduino.write(b'CLOSE_GATE\n')
+
+            try:
+                cursor.execute("INSERT INTO waiting_vehicles (vehicle_number) VALUES (%s)", (vehicle_number,))
                 db.commit()
-            else:
-                print("❌ Unauthorized Vehicle - Access Denied")
-                arduino.write(b'UNAUTHORIZED\n')
+            except mysql.connector.IntegrityError:
+                print("ℹ Vehicle already in waiting list.")
 
-                cursor.execute("SELECT * FROM waiting_vehicles WHERE vehicle_number = %s", (vehicle_number,))
-                exists = cursor.fetchone()
+            cursor.execute("""
+                INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
+                VALUES (%s, 'entry', 'waiting', 'closed', 'Access denied - waiting for approval')
+            """, (vehicle_number,))
+            db.commit()
 
-                if not exists:
-                    cursor.execute("INSERT INTO waiting_vehicles (vehicle_number) VALUES (%s)", (vehicle_number,))
-                    db.commit()
+        # Show image briefly
+        cv2.imshow("Captured Vehicle", img)
+        cv2.waitKey(2000)
+        cv2.destroyAllWindows()
 
-                cursor.execute("""
-                    INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action,
+    elif b'Vehicle Detected' in line:
+        print("🚗 Vehicle detected... capturing image.")
+
+    elif capturing:
+        image_data += line
