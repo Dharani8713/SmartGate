@@ -11,7 +11,7 @@ app = Flask(__name__)
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="yourpassword",
+    password="password",
     database="smart_gate_project"
 )
 cursor = db.cursor()
