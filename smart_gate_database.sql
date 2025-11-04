@@ -1,125 +1,98 @@
--- ==========================================================
--- CREATE DATABASE
--- ==========================================================
-CREATE DATABASE IF NOT EXISTS smart_gate_project;
-USE smart_gate_project;
+-- ==========================================
+-- DATABASE: smart_gate_v2 (Simplified Model)
+-- ==========================================
+CREATE DATABASE IF NOT EXISTS smart_gate_v2;
+USE smart_gate_v2;
 
--- ==========================================================
--- TABLE 1: staff_details (All admins & security members)
--- ==========================================================
-CREATE TABLE staff_details (
-  staff_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'security') DEFAULT 'security',
-  phone_number VARCHAR(20),
-  email VARCHAR(255),
-  created_on DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- ==========================================
+-- TABLE: users1
+-- ==========================================
+CREATE TABLE IF NOT EXISTS users1 (
+    user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(255),
+    role ENUM('admin', 'family', 'delivery') DEFAULT 'family',
+    priority INT DEFAULT 0
+) ENGINE=InnoDB;
 
--- ==========================================================
--- TABLE 2: allowed_vehicles (Vehicles allowed to enter gate)
--- ==========================================================
-CREATE TABLE allowed_vehicles (
-  vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  vehicle_number VARCHAR(20) NOT NULL UNIQUE,
-  owner_name VARCHAR(255),
-  approved_by INT,
-  approved_on DATETIME DEFAULT CURRENT_TIMESTAMP,
-  valid_until DATETIME,
-  FOREIGN KEY (approved_by) REFERENCES staff_details(staff_id)
-);
+-- ==========================================
+-- TABLE: vehicles2
+-- ==========================================
+CREATE TABLE IF NOT EXISTS vehicles2 (
+    vehicle_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    owner_user_id INT,
+    vehicle_number VARCHAR(50) NOT NULL UNIQUE,
+    status ENUM('allowed', 'denied', 'temporary') DEFAULT 'denied',
+    FOREIGN KEY (owner_user_id) REFERENCES users1(user_id) ON DELETE SET NULL
+) ENGINE=InnoDB;
 
--- ==========================================================
--- TABLE 3: waiting_vehicles (New vehicles waiting for approval)
--- ==========================================================
-CREATE TABLE waiting_vehicles (
-  request_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  vehicle_number VARCHAR(20) NOT NULL UNIQUE,
-  detected_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  status ENUM('waiting', 'approved', 'rejected') DEFAULT 'waiting',
-  reviewed_by INT,
-  reviewed_on DATETIME,
-  FOREIGN KEY (reviewed_by) REFERENCES staff_details(staff_id)
-);
+-- ==========================================
+-- TABLE: access_logs3
+-- ==========================================
+CREATE TABLE IF NOT EXISTS access_logs3 (
+    log_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    vehicle_id INT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    action ENUM('allowed', 'denied') DEFAULT 'denied',
+    image_url VARCHAR(500),
+    request_status ENUM('new', 'pending', 'approved', 'denied') DEFAULT 'new',
+    FOREIGN KEY (user_id) REFERENCES users1(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles2(vehicle_id) ON DELETE SET NULL
+) ENGINE=InnoDB;
 
--- ==========================================================
--- TABLE 4: blocked_vehicles (Vehicles rejected or denied)
--- ==========================================================
-CREATE TABLE blocked_vehicles (
-  block_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  vehicle_number VARCHAR(20) NOT NULL UNIQUE,
-  reason TEXT,
-  blocked_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  blocked_by INT,
-  FOREIGN KEY (blocked_by) REFERENCES staff_details(staff_id)
-);
+-- ==========================================
+-- TABLE: temp_requests4
+-- ==========================================
+CREATE TABLE IF NOT EXISTS temp_requests4 (
+    request_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    image_url VARCHAR(500),
+    phone_sent_to VARCHAR(20),
+    email_sent_to VARCHAR(255),
+    response_status ENUM('new', 'pending', 'approved', 'denied') DEFAULT 'new',
+    timeout_deadline DATETIME
+) ENGINE=InnoDB;
 
--- ==========================================================
--- TABLE 5: gate_logs (Stores all gate activities)
--- ==========================================================
-CREATE TABLE gate_logs (
-  log_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  vehicle_number VARCHAR(20) NOT NULL,
-  event_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  event_type ENUM('entry', 'exit') NOT NULL,
-  status ENUM('granted', 'denied', 'waiting') DEFAULT 'waiting',
-  gate_action ENUM('opened', 'closed') DEFAULT 'closed',
-  remarks TEXT
-);
+-- ==========================================
+-- SAMPLE DATA FOR TESTING
+-- ==========================================
+INSERT INTO users1 (name, phone, email, role, priority)
+VALUES
+('Ravi Shastry', '9876543210', 'ravi@smartgate.com', 'admin', 1),
+('Aishwarya N', '9998887776', 'aish@smartgate.com', 'family', 2),
+('Delivery Boy 1', '8887776665', 'del1@smartgate.com', 'delivery', 3);
 
--- ==========================================================
--- INSERT SAMPLE STAFF DATA
--- ==========================================================
-INSERT INTO staff_details (name, role, phone_number, email) VALUES
-('Aishwarya Nandeshwar', 'admin', '9876500000', 'aishwarya.admin@gate.com'),
-('xyz', 'security', '9876511111', 'xyz.sec@gate.com');
+INSERT IGNORE INTO vehicles2 (owner_user_id, vehicle_number, status)
+VALUES
+(1, 'KA01AB1234', 'allowed'),
+(2, 'KA02CD5678', 'temporary'),
+(3, 'KA03EF9999', 'denied');
 
--- ==========================================================
--- ADD ONE PRE-APPROVED VEHICLE
--- ==========================================================
-INSERT INTO allowed_vehicles (vehicle_number, owner_name, approved_by)
-VALUES ('KA01AB1234', 'Aishwarya Nandeshwar', 1);
+INSERT INTO temp_requests4 (image_url, phone_sent_to, email_sent_to, response_status, timeout_deadline)
+VALUES
+('images/unknown_vehicle1.jpg', '9876543210', 'ravi@smartgate.com', 'pending', '2025-11-05 18:00:00'),
+('images/unknown_vehicle2.jpg', '9998887776', 'aish@smartgate.com', 'pending', '2025-11-05 19:00:00');
 
--- ==========================================================
--- SIMULATION: NEW VEHICLE ARRIVES (KA09XY5678)
--- ==========================================================
+-- ==========================================
+-- MANUAL ADMIN ACTIONS (Simulated)
+-- ==========================================
+-- Case 1: Approve first request
+UPDATE temp_requests4 SET response_status = 'approved' WHERE request_id = 1;
+INSERT INTO vehicles2 (owner_user_id, vehicle_number, status)
+VALUES (1, CONCAT('REQ', 1), 'allowed');
+INSERT INTO access_logs3 (user_id, vehicle_id, action, image_url, request_status)
+VALUES (1, LAST_INSERT_ID(), 'allowed', 'images/unknown_vehicle1.jpg', 'approved');
 
--- Step 1: New vehicle detected and stored as waiting
-INSERT INTO waiting_vehicles (vehicle_number) VALUES ('KA09XY5678');
+-- Case 2: Deny second request
+UPDATE temp_requests4 SET response_status = 'denied' WHERE request_id = 2;
+INSERT INTO access_logs3 (user_id, vehicle_id, action, image_url, request_status)
+VALUES (1, NULL, 'denied', 'images/unknown_vehicle2.jpg', 'denied');
 
--- Step 2: Log denied entry because not yet approved
-INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
-VALUES ('KA09XY5678', 'entry', 'waiting', 'closed', 'Access denied - waiting for approval');
-
--- Step 3: Admin reviews and approves the vehicle
-UPDATE waiting_vehicles
-SET status = 'approved', reviewed_by = 1, reviewed_on = NOW()
-WHERE vehicle_number = 'KA09XY5678';
-
--- Step 4: Move the approved vehicle into allowed_vehicles
-INSERT INTO allowed_vehicles (vehicle_number, owner_name, approved_by)
-SELECT vehicle_number, 'Guest Vehicle', reviewed_by
-FROM waiting_vehicles
-WHERE vehicle_number = 'KA09XY5678';
-
--- Step 5: Remove from waiting list
-DELETE FROM waiting_vehicles WHERE vehicle_number = 'KA09XY5678';
-
--- Step 6: When the approved vehicle comes again, allow entry
-INSERT INTO gate_logs (vehicle_number, event_type, status, gate_action, remarks)
-VALUES ('KA09XY5678', 'entry', 'granted', 'opened', 'Authorized vehicle entry granted');
-
--- ==========================================================
--- OPTIONAL: BLOCK A VEHICLE
--- ==========================================================
-INSERT INTO blocked_vehicles (vehicle_number, reason, blocked_by)
-VALUES ('KA05ZZ9999', 'Unauthorized vehicle detected', 1);
-
--- ==========================================================
--- CHECK ALL TABLES (RUN THESE ONE BY ONE)
--- ==========================================================
-SELECT * FROM staff_details;
-SELECT * FROM allowed_vehicles;
-SELECT * FROM waiting_vehicles;
-SELECT * FROM blocked_vehicles;
-SELECT * FROM gate_logs;
+-- ==========================================
+-- CHECK RESULTS
+-- ==========================================
+SELECT * FROM vehicles2;      -- Approved and existing vehicles
+SELECT * FROM access_logs3;   -- All access activity logs
+SELECT * FROM temp_requests4; -- Requests with updated statuses
