@@ -1,0 +1,9 @@
+Flask==2.2.5
+pymongo==4.3.3
+opencv-python==4.8.0.76
+numpy==1.25.0
+pytesseract==0.4.10
+easyocr==1.7.0
+python-dotenv==1.0.0
+twilio==8.0.0
+flask_cors==3.0.10

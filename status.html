@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>SmartGate Status</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; background-color: #f5f7fa; }
+        h1 { color: #0066cc; }
+        .status-container { background: white; padding: 1.5em; border-radius: 8px; max-width: 600px; }
+        .status-item { margin-bottom: 1em; }
+        .label { font-weight: bold; color: #333; }
+        .value { color: #555; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <h1>SmartGate Backend Status</h1>
+    <div class="status-container">
+        <div class="status-item">
+            <span class="label">Status:</span> <span class="value">{{ status }}</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Database Connection:</span> <span class="value">{{ database }}</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Message:</span> <span class="value">{{ message }}</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Time (UTC):</span> <span class="value">{{ time }}</span>
+        </div>
+    </div>
+</body>
+</html>
