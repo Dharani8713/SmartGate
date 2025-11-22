@@ -12,14 +12,6 @@ import os
 
 # ---------------- Firebase Initialization ----------------
 # Use serviceAccountKey.json uploaded to your repo
-torch.serialization.add_safe_globals([
-    ultralytics.nn.tasks.DetectionModel,
-    torch.nn.modules.container.Sequential
-])
-
-# Now load the YOLOv8 model
-model = YOLO("yolov8n.pt")
-bucket = storage.bucket()
 
 # ---------------- YOLO Initialization ----------------
 # For license plate detection, train your custom YOLO model and replace yolov8n.pt
@@ -30,6 +22,11 @@ torch.serialization.add_safe_globals([
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential
 ])
+
+# Now load the YOLOv8 model
+model = YOLO("yolov8n.pt")
+bucket = storage.bucket()
+
  
 
 st.title("Smart Gate License Plate Detection")
@@ -74,6 +71,7 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception as e:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
 
 
