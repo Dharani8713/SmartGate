@@ -14,7 +14,7 @@ from datetime import datetime
 if not firebase_admin._apps:
     cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
-        "storageBucket": "your-bucket-name.appspot.com"
+        "storageBucket": "smart-gate-52e2d.firebasestorage.app"
     })
 bucket = storage.bucket()
 
@@ -59,3 +59,4 @@ if uploaded_file is not None:
     img.save(img_byte_arr, format="JPEG")
     blob.upload_from_string(img_byte_arr.getvalue(), content_type='image/jpeg')
     st.success(f"Uploaded image saved to Firebase Storage as uploads/{timestamp}.jpg")
+
