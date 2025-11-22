@@ -38,7 +38,12 @@ torch.serialization.add_safe_globals([
 # Load YOLOv8 model (make sure yolov8n.pt is in your project)
 from ultralytics import YOLO
 
-model = YOLO("yolov8n.pt", device="cpu")  # CPU for simplicity
+# Just load the model (no device argument)
+model = YOLO("yolov8n.pt")
+
+# Set the device later when running inference if needed:
+# results = model(img_array, device='cpu')  # pass device here if needed
+  # CPU for simplicity
 
 
 # ---------------- Streamlit UI ----------------
@@ -81,4 +86,5 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
