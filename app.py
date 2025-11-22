@@ -26,9 +26,8 @@ bucket = storage.bucket()
 torch.serialization.add_safe_globals([
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential,
-    ultralytics.nn.modules.Conv,        # for Conv layers
-    ultralytics.nn.modules.BatchNorm,   # add BatchNorm if model uses it
-    ultralytics.nn.modules.activation.SiLU  # add activation if used
+    ultralytics.nn.modules.Conv,
+    ultralytics.nn.modules.activation.SiLU
 ])
 
 # 2️⃣ Load the YOLOv8 model safely (no device argument here)
@@ -73,6 +72,7 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
 
 
