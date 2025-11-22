@@ -9,9 +9,9 @@ from firebase_admin import credentials, firestore, storage
 import json
 
 # ---------------- Firebase Initialization ----------------
-firebase_creds = st.secrets["FIREBASE_CREDENTIALS"]
-cred = credentials.Certificate(firebase_creds)
-
+firebase_creds_json = st.secrets["FIREBASE_CREDENTIALS"]["json"]  # Access the JSON string
+cred_dict = json.loads(firebase_creds_json)                        # Convert to dict
+cred = credentials.Certificate(cred_dict)    
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'smart-gate-52e2d.firebasestorage.app'
 })
@@ -58,6 +58,7 @@ if uploaded_file:
         if user_contact:
             # Example: replace with Twilio or SMTP integration
             st.write(f"Notification sent to {user_contact} (placeholder)")
+
 
 
 
