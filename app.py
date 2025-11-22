@@ -8,9 +8,12 @@ import firebase_admin
 from firebase_admin import credentials, firestore, storage
 
 # ---------------- Firebase Initialization ----------------
-cred = credentials.Certificate("serviceAccountKey.json")  # Your Firebase Admin SDK JSON
+firebase_creds = st.secrets["FIREBASE_CREDENTIALS"]
+cred_dict = json.loads(firebase_creds)
+cred = credentials.Certificate(cred_dict)
+
 firebase_admin.initialize_app(cred, {
-    'storageBucket': '<YOUR_BUCKET_NAME>.appspot.com'
+    'storageBucket': 'smart-gate-52e2d.firebasestorage.app'
 })
 
 db = firestore.client()
@@ -55,3 +58,4 @@ if uploaded_file:
         if user_contact:
             # Example: replace with Twilio or SMTP integration
             st.write(f"Notification sent to {user_contact} (placeholder)")
+
