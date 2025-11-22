@@ -6,6 +6,7 @@ import pytesseract
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
+import json
 
 # ---------------- Firebase Initialization ----------------
 firebase_creds = st.secrets["FIREBASE_CREDENTIALS"]
@@ -58,4 +59,5 @@ if uploaded_file:
         if user_contact:
             # Example: replace with Twilio or SMTP integration
             st.write(f"Notification sent to {user_contact} (placeholder)")
+
 
