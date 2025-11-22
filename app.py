@@ -10,11 +10,18 @@ import numpy as np
 # ----------------------------
 # Firebase Initialization
 # ----------------------------
+
+
+# Initialize Firebase only once
 if not firebase_admin._apps:
     cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
         "storageBucket": "your-bucket-name.appspot.com"
     })
+else:
+    # Use the existing default app
+    firebase_admin_app = firebase_admin.get_app()
+
 bucket = storage.bucket()
 
 # ----------------------------
@@ -47,3 +54,4 @@ if uploaded_file is not None:
     blob = bucket.blob(f"captures/{timestamp}.png")
     blob.upload_from_file(buffer, content_type="image/png")
     st.success(f"Image uploaded to Firebase as {timestamp}.png")
+
