@@ -12,12 +12,13 @@ import os
 
 # ---------------- Firebase Initialization ----------------
 # Use serviceAccountKey.json uploaded to your repo
-if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")
-    firebase_admin.initialize_app(cred, {
-        'storageBucket': 'smart-gate-52e2d.appspot.com'  # replace with your bucket
-    })
+torch.serialization.add_safe_globals([
+    ultralytics.nn.tasks.DetectionModel,
+    torch.nn.modules.container.Sequential
+])
 
+# Now load the YOLOv8 model
+model = YOLO("yolov8n.pt")
 bucket = storage.bucket()
 
 # ---------------- YOLO Initialization ----------------
@@ -73,6 +74,7 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception as e:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
 
 
