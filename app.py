@@ -24,15 +24,18 @@ bucket = storage.bucket()
 # ---------------- YOLO Initialization ----------------
 # Allowlist globals for safe unpickling
 import torch
-import ultralytics.nn.modules
+from ultralytics import YOLO
 import ultralytics.nn.tasks
 
-# Allowlist for safe unpickling
+# Allowlist classes needed to unpickle your YOLOv8 model
 torch.serialization.add_safe_globals([
-    torch.nn.modules.container.Sequential,
     ultralytics.nn.tasks.DetectionModel,
+    torch.nn.modules.container.Sequential,
     ultralytics.nn.modules.Conv
 ])
+
+# Now load the model safely
+model = YOLO("yolov8n.pt")  # no device argument here
 
 
 # Load YOLOv8 model (make sure yolov8n.pt is in your project)
@@ -86,5 +89,6 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
 
