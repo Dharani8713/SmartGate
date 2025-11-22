@@ -1,15 +1,6 @@
-# Streamlit web app
 streamlit==1.32.0
-
-# YOLO object detection
-ultralytics==8.3.230
-
-# Image handling
+pytesseract==0.3.10
 Pillow==10.0.1
+ultralytics==8.3.230
+firebase-admin==7.1.0
 numpy>=1.23.0,<2
-
-# OCR
-easyocr==1.7.0
-
-# Firebase
-firebase-admin>=7.1.0
