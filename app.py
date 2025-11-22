@@ -1,24 +1,63 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from utils.plate_recognition import extract_plate_text
-from utils.notify_admin import send_email, send_sms
+# streamlit_app.py
+import streamlit as st
+from PIL import Image
+import requests
+import pytesseract
+import firebase_admin
+from firebase_admin import credentials, firestore
+import smtplib
+from email.message import EmailMessage
 
-app = Flask(__name__)
-CORS(app)
+# Firebase init
+cred = credentials.Certificate("firebase_key.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
-@app.route('/api/recognize_plate', methods=['POST'])
-def recognize_plate():
-    data = request.json
-    image_data = data.get("image")
-    
-    # Run your OCR plate recognition logic
-    plate_text = extract_plate_text(image_data)
-    
-    # Optionally send alerts
-    send_email("admin@example.com", f"Plate recognized: {plate_text}")
-    send_sms("+1234567890", f"Plate recognized: {plate_text}")
-    
-    return jsonify({"plate_text": plate_text})
+st.title("Smart Gate System")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+uploaded_file = st.file_uploader("Upload image from Pi", type=["jpg", "png"])
+
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Captured Image", use_column_width=True)
+    
+    # OCR
+    plate_text = pytesseract.image_to_string(image)
+    st.text(f"Detected Plate: {plate_text}")
+
+    # Store image locally & in Firestore with timestamp
+    import time
+    timestamp = int(time.time())
+    img_name = f"plate_{timestamp}.jpg"
+    image.save(img_name)
+
+    db.collection("pending_plates").document(str(timestamp)).set({
+        "plate": plate_text.strip(),
+        "image": img_name,
+        "timestamp": timestamp,
+        "status": "pending"
+    })
+
+    st.success("Plate logged in Firestore!")
+
+    # Send notification via Email (example)
+    notify = st.checkbox("Notify user?")
+    if notify:
+        msg = EmailMessage()
+        msg.set_content(f"New vehicle detected: {plate_text}. Approve at your Streamlit dashboard.")
+        msg["Subject"] = "Smart Gate Alert"
+        msg["From"] = "youremail@gmail.com"
+        msg["To"] = "user@example.com"
+
+        # Send email via Gmail SMTP
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login("youremail@gmail.com", "app_password")
+            server.send_message(msg)
+
+    # Approve/Deny Buttons
+    if st.button("Approve"):
+        db.collection("pending_plates").document(str(timestamp)).update({"status": "approved"})
+        requests.post("http://<esp32_ip>/action", json={"action": "open"})
+    if st.button("Deny"):
+        db.collection("pending_plates").document(str(timestamp)).update({"status": "denied"})
+        requests.post("http://<esp32_ip>/action", json={"action": "close"})
