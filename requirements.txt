@@ -1,5 +1,5 @@
 streamlit==1.30.0
-pip install ultralytics==8.3.230
+ultralytics==8.3.230
 torch==2.6.0
 torchvision==0.17.0
 numpy==1.27.5
