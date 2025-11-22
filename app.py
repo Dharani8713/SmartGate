@@ -12,9 +12,9 @@ import io
 # Firebase Initialization
 # ----------------------------
 if not firebase_admin._apps:
-    cred = credentials.Certificate("path/to/firebase_credentials.json")
+    cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
-        "storageBucket": "your-bucket-name.appspot.com"
+        "storageBucket": "smart-gate-52e2d.firebasestorage.app"
     })
 
 bucket = storage.bucket()
@@ -70,3 +70,4 @@ if uploaded_file:
     blob = bucket.blob(f"uploads/{timestamp}.png")
     blob.upload_from_string(image_bytes.getvalue(), content_type='image/png')
     st.success(f"Image saved to Firebase Storage: uploads/{timestamp}.png")
+
