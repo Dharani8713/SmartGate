@@ -21,7 +21,13 @@ bucket = storage.bucket()
 
 # ---------------- YOLO Initialization ----------------
 # For license plate detection, train your custom YOLO model and replace yolov8n.pt
-model = YOLO("yolov8n.pt")  
+import torch
+# Allowlist YOLO global class
+torch.serialization.add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+
+# Load YOLO model
+model = YOLO("yolov8n.pt")
+ 
 
 st.title("Smart Gate License Plate Detection")
 
@@ -65,3 +71,4 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception as e:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
