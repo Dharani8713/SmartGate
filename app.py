@@ -6,6 +6,8 @@ from datetime import datetime
 
 import firebase_admin
 from firebase_admin import credentials, storage
+import ultralytics.nn.modules.activation
+torch.serialization.add_safe_globals([ultralytics.nn.modules.activation.SiLU])
 
 # ---------------- Firebase Initialization ----------------
 if not firebase_admin._apps:
@@ -80,6 +82,7 @@ if uploaded_file:
             st.info("No plate text detected.")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed.")
+
 
 
 
