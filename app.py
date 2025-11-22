@@ -10,7 +10,6 @@ import json
 
 # ---------------- Firebase Initialization ----------------
 firebase_creds = st.secrets["FIREBASE_CREDENTIALS"]
-cred_dict = json.loads(firebase_creds)
 cred = credentials.Certificate(cred_dict)
 
 firebase_admin.initialize_app(cred, {
@@ -59,5 +58,6 @@ if uploaded_file:
         if user_contact:
             # Example: replace with Twilio or SMTP integration
             st.write(f"Notification sent to {user_contact} (placeholder)")
+
 
 
