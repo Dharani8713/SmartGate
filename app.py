@@ -23,33 +23,17 @@ bucket = storage.bucket()
 
 # ---------------- YOLO Initialization ----------------
 # Allowlist globals for safe unpickling
-import torch
-from ultralytics import YOLO
-import ultralytics.nn.tasks
-
-# Allowlist classes needed to unpickle your YOLOv8 model
 torch.serialization.add_safe_globals([
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential,
-    ultralytics.nn.modules.Conv
+    ultralytics.nn.modules.Conv,        # for Conv layers
+    ultralytics.nn.modules.BatchNorm,   # add BatchNorm if model uses it
+    ultralytics.nn.modules.activation.SiLU  # add activation if used
 ])
 
-# Now load the model safely
+# 2️⃣ Load the YOLOv8 model safely (no device argument here)
 model = YOLO("yolov8n.pt")  # no device argument here
-
-
-# Load YOLOv8 model (make sure yolov8n.pt is in your project)
-from ultralytics import YOLO
-
-# Just load the model (no device argument)
-model = YOLO("yolov8n.pt")
-
-# Set the device later when running inference if needed:
-# results = model(img_array, device='cpu')  # pass device here if needed
-  # CPU for simplicity
-
-
-# ---------------- Streamlit UI ----------------
+---------------- Streamlit UI ----------------
 st.title("Smart Gate License Plate Detection")
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -89,6 +73,7 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
 
 
