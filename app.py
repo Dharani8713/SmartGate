@@ -1,3 +1,4 @@
+import ultralytics.nn.tasks
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -71,4 +72,5 @@ if uploaded_file:
             st.success(f"Detected Plate Texts: {plate_texts}")
     except Exception as e:
         st.warning("OCR skipped: pytesseract or Tesseract not installed on this environment.")
+
 
