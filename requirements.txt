@@ -1,7 +1,17 @@
+# Webapp
 streamlit==1.30.0
+
+# YOLO & Computer Vision
 ultralytics==8.3.230
-numpy>=1.23,<2
 opencv-python-headless==4.12.0.88
+numpy>=1.23,<2
+
+# Image processing
 pillow==10.0.1
 pytesseract==0.4.2
+
+# Firebase
 firebase-admin==6.1.1
+
+# Optional, improved exception logging
+rich
