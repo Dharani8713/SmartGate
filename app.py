@@ -16,19 +16,18 @@ if not firebase_admin._apps:
 bucket = storage.bucket()
 
 import torch
+from ultralytics import YOLO
 import ultralytics.nn.modules
 import ultralytics.nn.tasks
 import torch.nn.modules.container
-from ultralytics import YOLO
 
-# Wrap model loading in a safe_globals context
 with torch.serialization.safe_globals([
     ultralytics.nn.modules.Conv,
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential
 ]):
-    # Load YOLO model safely
-    model = YOLO("yolov8n.pt")  # no device argument here
+    model = YOLO("yolov8n.pt")
+  # no device argument here
  # do not pass device here
 
 
@@ -81,5 +80,6 @@ if uploaded_file:
             st.info("No plate text detected.")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed.")
+
 
 
