@@ -1,17 +1,9 @@
-# Webapp
-streamlit==1.30.0
-
-# YOLO & Computer Vision
+# Streamlit that supports numpy 2.x
+streamlit==1.32.0  # newer versions allow numpy 2.x
 ultralytics==8.3.230
 opencv-python-headless==4.12.0.88
-numpy>=1.23,<2
-
-# Image processing
+numpy>=2.0.0,<2.3.0
 pillow==10.0.1
-pytesseract==0.3.10  # latest compatible with Python 3.11
-
-# Firebase
-firebase-admin==6.1.1
-
-# Optional, improved exception logging
+pytesseract==0.3.10
+firebase-admin==7.1.0  # last stable for Python 3.11
 rich
