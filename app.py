@@ -4,12 +4,6 @@ import numpy as np
 import io
 from datetime import datetime
 
-import torch
-from ultralytics import YOLO
-import ultralytics.nn.modules
-import ultralytics.nn.tasks
-import torch.nn.modules.container
-
 import firebase_admin
 from firebase_admin import credentials, storage
 
@@ -21,16 +15,25 @@ if not firebase_admin._apps:
     })
 bucket = storage.bucket()
 
-# ---------------- YOLO Safe Loading ----------------
-# Add required globals for safe unpickling
+import torch
+
+# ---------------- Safe unpickling first ----------------
+import ultralytics.nn.modules
+import ultralytics.nn.tasks
+import torch.nn.modules.container
+
 torch.serialization.add_safe_globals([
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential,
     ultralytics.nn.modules.Conv
 ])
 
-# Load YOLOv8 model (do NOT pass device here)
-model = YOLO("yolov8n.pt")  # replace with your model path
+# Now import YOLO after safe_globals
+from ultralytics import YOLO
+
+# Load model safely
+model = YOLO("yolov8n.pt")  # do not pass device here
+
 
 # ---------------- Streamlit UI ----------------
 st.title("Smart Gate License Plate Detection")
@@ -81,3 +84,4 @@ if uploaded_file:
             st.info("No plate text detected.")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed.")
+
