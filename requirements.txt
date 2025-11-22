@@ -8,7 +8,7 @@ numpy>=1.23,<2
 
 # Image processing
 pillow==10.0.1
-pytesseract==0.4.2
+pytesseract==0.3.10  # latest compatible with Python 3.11
 
 # Firebase
 firebase-admin==6.1.1
