@@ -8,6 +8,10 @@ from firebase_admin import credentials, storage
 from ultralytics import YOLO
 import pytesseract
 import os
+os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"  # disable Windows video backend
+os.environ["OPENCV_OPENGL_RUNTIME"] = "0"         # disable OpenGL loading
+
+import cv2
 
 # ---------------- Firebase Initialization ----------------
 if not firebase_admin._apps:
@@ -61,3 +65,4 @@ if uploaded_file:
         st.success(f"Detected Plate Texts: {plate_texts}")
     else:
         st.warning("No plate text detected.")
+
