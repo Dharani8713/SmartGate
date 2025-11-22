@@ -9,15 +9,14 @@ from firebase_admin import credentials, firestore, storage
 import json
 
 # ---------------- Firebase Initialization ----------------
-cred = credentials.Certificate("serviceAccountKey.json")
-   
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'smart-gate-52e2d.firebasestorage.app'
-})
+if not firebase_admin._apps:  # _apps is a dict of initialized apps
+    cred = credentials.Certificate("serviceAccountKey.json")
+    firebase_admin.initialize_app(cred, {
+        "storageBucket": "smart-gate-52e2d.appspot.com"
+    })
 
 db = firestore.client()
 bucket = storage.bucket()
-
 # ---------------- Streamlit UI ----------------
 st.set_page_config(page_title="Smart Gate OCR", layout="wide")
 st.title("Smart Gate: OCR & Notifications")
@@ -57,6 +56,7 @@ if uploaded_file:
         if user_contact:
             # Example: replace with Twilio or SMTP integration
             st.write(f"Notification sent to {user_contact} (placeholder)")
+
 
 
 
