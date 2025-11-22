@@ -1,3 +1,10 @@
+# Must be at the very top, before importing cv2 or ultralytics
+import os
+os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"  # disable Windows video backend
+os.environ["OPENCV_OPENGL_RUNTIME"] = "0"         # disable OpenGL loading
+
+# Now safe to import OpenCV and ultralytics
+import cv2
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -7,11 +14,7 @@ import firebase_admin
 from firebase_admin import credentials, storage
 from ultralytics import YOLO
 import pytesseract
-import os
-os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"  # disable Windows video backend
-os.environ["OPENCV_OPENGL_RUNTIME"] = "0"         # disable OpenGL loading
 
-import cv2
 
 # ---------------- Firebase Initialization ----------------
 if not firebase_admin._apps:
@@ -65,4 +68,5 @@ if uploaded_file:
         st.success(f"Detected Plate Texts: {plate_texts}")
     else:
         st.warning("No plate text detected.")
+
 
