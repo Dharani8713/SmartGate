@@ -1,57 +1,61 @@
 import streamlit as st
 from PIL import Image
-import pytesseract
+import numpy as np
 import io
 import firebase_admin
 from firebase_admin import credentials, storage
+from ultralytics import YOLO
+import easyocr
 from datetime import datetime
-import numpy as np
 
 # ----------------------------
 # Firebase Initialization
 # ----------------------------
-
-
-# Initialize Firebase only once
 if not firebase_admin._apps:
     cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
         "storageBucket": "your-bucket-name.appspot.com"
     })
-else:
-    # Use the existing default app
-    firebase_admin_app = firebase_admin.get_app()
-
 bucket = storage.bucket()
 
 # ----------------------------
-# Streamlit App
+# Streamlit UI
 # ----------------------------
-st.title("Smart Gate License Plate OCR")
-st.write("Upload an image to detect license plates.")
-
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
+st.title("Smart Gate OCR & Vehicle Detection")
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Load image
     img = Image.open(uploaded_file)
     st.image(img, caption="Uploaded Image", use_column_width=True)
 
-    # ----------------------------
-    # OCR using pytesseract
-    # ----------------------------
-    text = pytesseract.image_to_string(img)
-    st.text_area("Detected Text", text)
+    # Convert to numpy for YOLO/EasyOCR
+    img_array = np.array(img)
 
     # ----------------------------
-    # Upload to Firebase Storage
+    # YOLO Detection
     # ----------------------------
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
+    with st.spinner("Detecting objects..."):
+        model = YOLO("yolov8n.pt")  # make sure this file is in repo or auto-download
+        results = model(img_array)
+        # Draw boxes on image
+        annotated_frame = results[0].plot()
+        st.image(annotated_frame, caption="YOLO Detection", use_column_width=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    blob = bucket.blob(f"captures/{timestamp}.png")
-    blob.upload_from_file(buffer, content_type="image/png")
-    st.success(f"Image uploaded to Firebase as {timestamp}.png")
+    # ----------------------------
+    # OCR using EasyOCR
+    # ----------------------------
+    with st.spinner("Reading text from image..."):
+        reader = easyocr.Reader(['en'])
+        ocr_results = reader.readtext(img_array, detail=0)
+        detected_text = " ".join(ocr_results)
+        st.text_area("Detected Text", detected_text)
 
+    # ----------------------------
+    # Save to Firebase Storage
+    # ----------------------------
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    blob = bucket.blob(f"uploads/{timestamp}.jpg")
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="JPEG")
+    blob.upload_from_string(img_byte_arr.getvalue(), content_type='image/jpeg')
+    st.success(f"Uploaded image saved to Firebase Storage as uploads/{timestamp}.jpg")
