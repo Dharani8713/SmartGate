@@ -1,77 +1,72 @@
 import streamlit as st
 from PIL import Image
+import pytesseract
 import numpy as np
-import easyocr
 from ultralytics import YOLO
 import firebase_admin
 from firebase_admin import credentials, storage
-from datetime import datetime
 import io
+from datetime import datetime
+import os
 
 # ----------------------------
 # Firebase Initialization
 # ----------------------------
-FIREBASE_KEY_PATH = os.path.join(os.getcwd(), "service_accountkey.json")
-
-# Initialize Firebase only if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
+    cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
         "storageBucket": "your-bucket-name.appspot.com"
     })
-
 bucket = storage.bucket()
 
 # ----------------------------
-# Load YOLO Model
+# Streamlit App Layout
 # ----------------------------
-model = YOLO("yolov8n.pt")  # or your trained weights
+st.title("Smart Gate License Plate OCR")
+st.write("Upload an image or take a snapshot to detect the license plate.")
 
-# ----------------------------
-# Streamlit App
-# ----------------------------
-st.title("Smart Gate - License Plate Detection & OCR")
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
 
-uploaded_file = st.file_uploader("Upload vehicle image", type=["jpg", "jpeg", "png"])
-if uploaded_file:
-    # Read image using Pillow
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+if uploaded_file is not None:
+    # Load image
+    img = Image.open(uploaded_file)
+    st.image(img, caption="Uploaded Image", use_column_width=True)
 
-    # Convert to NumPy array for YOLO
-    image_array = np.array(image)
+    # Convert to numpy for YOLO
+    np_img = np.array(img)
 
     # ----------------------------
-    # Run YOLO Detection
+    # YOLO Detection
     # ----------------------------
-    results = model(image_array)
+    model = YOLO("yolov8n.pt")  # lightweight YOLOv8 model
+    results = model(np_img)
 
-    # Draw detections and display
-    annotated_img = results[0].plot()
-    annotated_img_pil = Image.fromarray(annotated_img)
-    st.image(annotated_img_pil, caption="Detected Objects")
+    # Draw bounding boxes on PIL image
+    result_img = img.copy()
+    for box in results[0].boxes.xyxy:
+        x1, y1, x2, y2 = map(int, box)
+        result_img = result_img.copy()
+        # Draw rectangle using PIL
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(result_img)
+        draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
 
-    # ----------------------------
-    # OCR using EasyOCR
-    # ----------------------------
-    reader = easyocr.Reader(['en'])
-    ocr_results = reader.readtext(image_array)
-
-    st.subheader("OCR Results")
-    if ocr_results:
-        for bbox, text, prob in ocr_results:
-            st.write(f"Text: {text}, Confidence: {prob:.2f}")
-    else:
-        st.write("No text detected")
+    st.image(result_img, caption="Detected Plates", use_column_width=True)
 
     # ----------------------------
-    # Save Image with Timestamp to Firebase Storage
+    # OCR with pytesseract
     # ----------------------------
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    image_bytes = io.BytesIO()
-    image.save(image_bytes, format='PNG')
-    blob = bucket.blob(f"uploads/{timestamp}.png")
-    blob.upload_from_string(image_bytes.getvalue(), content_type='image/png')
-    st.success(f"Image saved to Firebase Storage: uploads/{timestamp}.png")
+    text = pytesseract.image_to_string(result_img)
+    st.text_area("Detected Text", text)
 
+    # ----------------------------
+    # Upload to Firebase Storage
+    # ----------------------------
+    buffer = io.BytesIO()
+    result_img.save(buffer, format="PNG")
+    buffer.seek(0)
 
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    blob = bucket.blob(f"captures/{timestamp}.png")
+    blob.upload_from_file(buffer, content_type="image/png")
+    st.success(f"Image uploaded to Firebase as {timestamp}.png")
