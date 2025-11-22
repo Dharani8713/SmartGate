@@ -1,14 +1,6 @@
-# Firebase Admin SDK
+streamlit==1.27.0
 firebase-admin==6.0.1
-
-# Pillow for image handling
 Pillow==10.0.0
-
-# Requests for HTTP requests
 requests==2.31.0
-
-# pytesseract for OCR
-pytesseract==0.4.3
-
-# numpy (dependency for Pillow/pytesseract)
+pytesseract>=0.3.10
 numpy==1.24.3
