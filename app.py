@@ -1,65 +1,72 @@
-import os
-
-# ----------------------------
-# Environment settings for OpenCV headless mode
-# ----------------------------
-os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"  # Disable Windows video backend (no-op on Linux)
-os.environ["OPENCV_OPENGL_RUNTIME"] = "0"         # Disable OpenGL (avoids libGL errors)
-
-# ----------------------------
-# Imports
-# ----------------------------
-import cv2
 import streamlit as st
 from PIL import Image
 import numpy as np
-import pytesseract
+import easyocr
+from ultralytics import YOLO
 import firebase_admin
 from firebase_admin import credentials, storage
-from ultralytics import YOLO
 from datetime import datetime
+import io
 
 # ----------------------------
-# Firebase initialization
+# Firebase Initialization
 # ----------------------------
 if not firebase_admin._apps:
-    cred = credentials.Certificate("path/to/your-firebase-service-account.json")
+    cred = credentials.Certificate("path/to/firebase_credentials.json")
     firebase_admin.initialize_app(cred, {
         "storageBucket": "your-bucket-name.appspot.com"
     })
 
-# ----------------------------
-# Streamlit WebApp
-# ----------------------------
-st.title("Smart Gate Access Control")
+bucket = storage.bucket()
 
-uploaded_file = st.file_uploader("Upload Vehicle Image", type=["jpg", "png", "jpeg"])
+# ----------------------------
+# Load YOLO Model
+# ----------------------------
+model = YOLO("yolov8n.pt")  # or your trained weights
+
+# ----------------------------
+# Streamlit App
+# ----------------------------
+st.title("Smart Gate - License Plate Detection & OCR")
+
+uploaded_file = st.file_uploader("Upload vehicle image", type=["jpg", "jpeg", "png"])
 if uploaded_file:
+    # Read image using Pillow
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Convert to OpenCV format
-    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    # Convert to NumPy array for YOLO
+    image_array = np.array(image)
 
     # ----------------------------
-    # YOLO Object Detection
+    # Run YOLO Detection
     # ----------------------------
-    model = YOLO("yolov8n.pt")  # replace with your trained model if needed
-    results = model(cv_image)
+    results = model(image_array)
 
-    st.write("Detection Results:")
-    st.write(results.pandas().xyxy[0])  # Bounding boxes and labels
-
-    # ----------------------------
-    # OCR License Plate
-    # ----------------------------
-    plate_text = pytesseract.image_to_string(cv_image)
-    st.write("Detected Plate:", plate_text)
+    # Draw detections and display
+    annotated_img = results[0].plot()
+    annotated_img_pil = Image.fromarray(annotated_img)
+    st.image(annotated_img_pil, caption="Detected Objects")
 
     # ----------------------------
-    # Optional: Store image to Firebase
+    # OCR using EasyOCR
     # ----------------------------
-    bucket = storage.bucket()
-    blob = bucket.blob(f"vehicle_images/{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg")
-    blob.upload_from_file(uploaded_file, content_type=uploaded_file.type)
-    st.success("Image uploaded to Firebase successfully!")
+    reader = easyocr.Reader(['en'])
+    ocr_results = reader.readtext(image_array)
+
+    st.subheader("OCR Results")
+    if ocr_results:
+        for bbox, text, prob in ocr_results:
+            st.write(f"Text: {text}, Confidence: {prob:.2f}")
+    else:
+        st.write("No text detected")
+
+    # ----------------------------
+    # Save Image with Timestamp to Firebase Storage
+    # ----------------------------
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format='PNG')
+    blob = bucket.blob(f"uploads/{timestamp}.png")
+    blob.upload_from_string(image_bytes.getvalue(), content_type='image/png')
+    st.success(f"Image saved to Firebase Storage: uploads/{timestamp}.png")
