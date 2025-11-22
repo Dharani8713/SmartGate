@@ -1,8 +1,8 @@
 # Streamlit that supports numpy 2.x
 streamlit==1.32.0  # newer versions allow numpy 2.x
 ultralytics==8.3.230
-opencv-python-headless==4.12.0.88
-numpy>=2.0.0,<2.3.0
+opencv-python-headless==4.8.1.78
+numpy>=1.23,<2
 pillow==10.0.1
 pytesseract==0.3.10
 firebase-admin==7.1.0  # last stable for Python 3.11
