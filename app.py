@@ -22,14 +22,16 @@ import ultralytics.nn.tasks
 import torch.nn.modules.container
 
 # Allowlist safe globals
-torch.serialization.add_safe_globals([
+safe_globals = [
     ultralytics.nn.tasks.DetectionModel,
     torch.nn.modules.container.Sequential,
     ultralytics.nn.modules.Conv
-])
+]
 
-# Load YOLOv8 model safely
-model = YOLO("yolov8n.pt")
+with torch.serialization.safe_globals(safe_globals):
+    # Load YOLOv8 model safely
+    model = YOLO("yolov8n.pt")  # no device argument here
+
   # no device argument here
 
   # no device argument here
@@ -85,6 +87,7 @@ if uploaded_file:
             st.info("No plate text detected.")
     except Exception:
         st.warning("OCR skipped: pytesseract or Tesseract not installed.")
+
 
 
 
