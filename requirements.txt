@@ -1,4 +1,5 @@
-# Streamlit web app
+# System dependencies required: libgl1, libglib2.0-0
+
 streamlit==1.30.0
 
 # YOLO / computer vision
