@@ -1,63 +1,57 @@
-# streamlit_app.py
 import streamlit as st
 from PIL import Image
+import io
 import requests
 import pytesseract
+from datetime import datetime
 import firebase_admin
-from firebase_admin import credentials, firestore
-import smtplib
-from email.message import EmailMessage
+from firebase_admin import credentials, firestore, storage
 
-# Firebase init
-cred = credentials.Certificate("firebase_key.json")
-firebase_admin.initialize_app(cred)
+# ---------------- Firebase Initialization ----------------
+cred = credentials.Certificate("serviceAccountKey.json")  # Your Firebase Admin SDK JSON
+firebase_admin.initialize_app(cred, {
+    'storageBucket': '<YOUR_BUCKET_NAME>.appspot.com'
+})
+
 db = firestore.client()
+bucket = storage.bucket()
 
-st.title("Smart Gate System")
+# ---------------- Streamlit UI ----------------
+st.set_page_config(page_title="Smart Gate OCR", layout="wide")
+st.title("Smart Gate: OCR & Notifications")
 
-uploaded_file = st.file_uploader("Upload image from Pi", type=["jpg", "png"])
+st.subheader("Upload car image from Raspberry Pi")
+uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 
+# ---------------- OCR & Firestore ----------------
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Captured Image", use_column_width=True)
-    
-    # OCR
-    plate_text = pytesseract.image_to_string(image)
-    st.text(f"Detected Plate: {plate_text}")
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Store image locally & in Firestore with timestamp
-    import time
-    timestamp = int(time.time())
-    img_name = f"plate_{timestamp}.jpg"
-    image.save(img_name)
+    # OCR using pytesseract
+    plate_text = pytesseract.image_to_string(image, config='--psm 7').strip()
+    st.success(f"Detected Plate: {plate_text}")
 
-    db.collection("pending_plates").document(str(timestamp)).set({
-        "plate": plate_text.strip(),
-        "image": img_name,
-        "timestamp": timestamp,
-        "status": "pending"
+    # Save image to Firebase Storage
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    img_blob = bucket.blob(f"plates/{timestamp}.jpg")
+    img_bytes = io.BytesIO()
+    image.save(img_bytes, format="JPEG")
+    img_blob.upload_from_string(img_bytes.getvalue(), content_type='image/jpeg')
+
+    # Store plate info in Firestore
+    doc_ref = db.collection("plates").document(str(timestamp))
+    doc_ref.set({
+        "plate": plate_text,
+        "image_url": img_blob.public_url,
+        "timestamp": datetime.now()
     })
 
-    st.success("Plate logged in Firestore!")
+    st.info(f"Plate info stored in Firestore! [Image URL]({img_blob.public_url})")
 
-    # Send notification via Email (example)
-    notify = st.checkbox("Notify user?")
-    if notify:
-        msg = EmailMessage()
-        msg.set_content(f"New vehicle detected: {plate_text}. Approve at your Streamlit dashboard.")
-        msg["Subject"] = "Smart Gate Alert"
-        msg["From"] = "youremail@gmail.com"
-        msg["To"] = "user@example.com"
-
-        # Send email via Gmail SMTP
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login("youremail@gmail.com", "app_password")
-            server.send_message(msg)
-
-    # Approve/Deny Buttons
-    if st.button("Approve"):
-        db.collection("pending_plates").document(str(timestamp)).update({"status": "approved"})
-        requests.post("http://<esp32_ip>/action", json={"action": "open"})
-    if st.button("Deny"):
-        db.collection("pending_plates").document(str(timestamp)).update({"status": "denied"})
-        requests.post("http://<esp32_ip>/action", json={"action": "close"})
+    # Optional: Send notification (Email/SMS)
+    if st.checkbox("Send Notification"):
+        user_contact = st.text_input("Enter email or phone number:")
+        if user_contact:
+            # Example: replace with Twilio or SMTP integration
+            st.write(f"Notification sent to {user_contact} (placeholder)")
