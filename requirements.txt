@@ -1,9 +1,15 @@
-# Streamlit that supports numpy 2.x
-streamlit==1.32.0  # newer versions allow numpy 2.x
+# Streamlit web app
+streamlit==1.32.0
+
+# YOLO object detection
 ultralytics==8.3.230
-opencv-python-headless==4.8.1.78
-numpy>=1.23,<2
-pillow==10.0.1
-pytesseract==0.3.10
-firebase-admin==7.1.0  # last stable for Python 3.11
-rich
+
+# Image handling
+Pillow==10.0.1
+numpy>=1.23.0,<2
+
+# OCR
+easyocr==1.7.0
+
+# Firebase
+firebase-admin>=7.1.0
